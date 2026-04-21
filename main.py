@@ -1,0 +1,190 @@
+import csv
+import os
+import matplotlib.pyplot as plt
+
+transactions = []
+current_user = None
+
+# ---------- SIGNUP ----------
+def signup():
+    print("\n==== Sign Up ====")
+    username = input("Create Username: ")
+    password = input("Create Password: ")
+
+    if username == "" or password == "":
+        print("❌ Fields cannot be empty!")
+        return
+
+    if os.path.exists("users.csv"):
+        with open("users.csv", "r") as f:
+            for row in csv.reader(f):
+                if row[0] == username:
+                    print("❌ Username already exists!")
+                    return
+
+    with open("users.csv", "a", newline="") as f:
+        csv.writer(f).writerow([username, password])
+
+    print("✅ Account created!")
+
+# ---------- LOGIN ----------
+def login():
+    global current_user
+
+    print("\n==== Login ====")
+    username = input("Username: ")
+    password = input("Password: ")
+
+    if not os.path.exists("users.csv"):
+        print("No users found.")
+        return False
+
+    with open("users.csv", "r") as f:
+        for row in csv.reader(f):
+            if row[0] == username and row[1] == password:
+                current_user = username
+                print(f"Welcome {username}")
+                return True
+
+    print("❌ Invalid login!")
+    return False
+
+# ---------- FILE ----------
+def filename():
+    return f"{current_user}_data.csv"
+
+# ---------- LOAD ----------
+def load_data():
+    global transactions
+    transactions = []
+
+    if os.path.exists(filename()):
+        with open(filename(), "r") as f:
+            for row in csv.reader(f):
+                transactions.append((row[0], float(row[1]), row[2]))
+
+# ---------- SAVE ----------
+def save_data():
+    with open(filename(), "w", newline="") as f:
+        csv.writer(f).writerows(transactions)
+    print("✅ Data Saved!")
+
+# ---------- ADD ----------
+def add_income():
+    try:
+        amt = float(input("Enter income: "))
+        transactions.append(("Income", amt, "None"))
+    except:
+        print("❌ Invalid input!")
+
+def add_expense():
+    while True:
+        cat = input("Category (Food/Travel/Bills/Others or 'done'): ")
+        if cat.lower() == "done":
+            break
+        try:
+            amt = float(input("Amount: "))
+            transactions.append(("Expense", amt, cat.capitalize()))
+        except:
+            print("❌ Invalid input!")
+
+# ---------- SHOW ----------
+def show_balance():
+    inc = sum(t[1] for t in transactions if t[0]=="Income")
+    exp = sum(t[1] for t in transactions if t[0]=="Expense")
+    print(f"Balance: ₹{inc-exp:.2f}")
+
+def show_transactions():
+    print("\n--- Transactions ---")
+    for i,t in enumerate(transactions):
+        print(f"{i+1}. {t}")
+
+# ---------- DELETE ----------
+def delete_data():
+    global transactions
+    print("\n1. Delete ALL\n2. Delete ONE")
+    ch = input("Enter choice: ")
+
+    if ch=="1":
+        transactions=[]
+        print("All data deleted!")
+    elif ch=="2":
+        show_transactions()
+        try:
+            idx=int(input("Enter index: "))-1
+            transactions.pop(idx)
+            print("Entry deleted!")
+        except:
+            print("Invalid index!")
+
+# ---------- VISUAL ----------
+def visualize():
+    data={}
+    for t in transactions:
+        if t[0]=="Expense":
+            data[t[2]]=data.get(t[2],0)+t[1]
+
+    if not data:
+        print("No data to visualize.")
+        return
+
+    plt.pie(data.values(), labels=data.keys(), autopct='%1.1f%%')
+    plt.title(f"{current_user}'s Expenses")
+    plt.show()
+
+# ---------- RECOMMEND ----------
+def recommend():
+    inc=sum(t[1] for t in transactions if t[0]=="Income")
+    exp=sum(t[1] for t in transactions if t[0]=="Expense")
+
+    if exp>inc:
+        print("⚠️ Overspending")
+    elif exp>0.7*inc:
+        print("⚠️ High spending")
+    else:
+        print("✅ Good financial condition")
+
+# ---------- MAIN ----------
+while True:
+    print("\n==== MAIN MENU ====")
+    print("1. Signup")
+    print("2. Login")
+    print("3. Exit")
+
+    ch = input("Enter choice: ")
+
+    if ch=="1":
+        signup()
+
+    elif ch=="2":
+        if login():
+            load_data()
+
+            while True:
+                print(f"\n==== {current_user}'s Dashboard ====")
+                print("1. Add Income")
+                print("2. Add Expense")
+                print("3. Show Balance")
+                print("4. Show Transactions")
+                print("5. Visualize Expenses")
+                print("6. Recommendation")
+                print("7. Save Data")
+                print("8. Delete Data")
+                print("9. Logout")
+
+                c = input("Enter choice: ")
+
+                if c=="1": add_income()
+                elif c=="2": add_expense()
+                elif c=="3": show_balance()
+                elif c=="4": show_transactions()
+                elif c=="5": visualize()
+                elif c=="6": recommend()
+                elif c=="7": save_data()
+                elif c=="8": delete_data()
+                elif c=="9": break
+                else: print("Invalid!")
+
+    elif ch=="3":
+        print("Goodbye!")
+        break
